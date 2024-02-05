@@ -1,0 +1,139 @@
+---
+title: "Homework 3"
+author: "Nancy Yeung (ny3257) - SDS 315 - [GitHub Repository](https://github.com/0NancyYeung0/Homework2.git)"
+output: pdf_document
+---
+\vspace{-1cm}
+
+```{r global_options, echo=FALSE}
+knitr::opts_chunk$set(fig.height=4, fig.width=9, warning=FALSE, message=FALSE, echo=FALSE)
+```
+
+```{r}
+library(ggplot2)
+library(RColorBrewer)
+library(dplyr)
+library(kableExtra)
+library(knitr)
+library(tidyverse)
+library(tibble)
+Creatinine <- read.csv('creatinine.csv')
+Milk <- read.csv('milk.csv')
+Covid <- read.csv('covid.csv')
+MarketModel <- read.csv('marketmodel.csv')
+```
+------------------------------------------------------------------------
+\begingroup
+\fontsize{12}{14}\selectfont
+**Problem 1:**
+\endgroup
+
+\begingroup
+\fontsize{10}{12}\selectfont
+**Part A**
+\endgroup
+
+```{r}
+ModelCreatinine = lm(creatclear ~ age, data = Creatinine)
+
+Calc = coef(ModelCreatinine)[1] + (coef(ModelCreatinine)[2]*55)
+```
+
+The creatinine clearance rate for a 55-year old is `r round(Calc, 3)` mL/minute. This was found using a statistical model equation, 147.813 - 0.62 * age, which had numbers gathered using the lm() function.
+
+\begingroup
+\fontsize{10}{12}\selectfont
+**Part B**
+\endgroup
+
+The creatinine clearance rate changes by `r round(coef(ModelCreatinine)[2], 3)` mL/minute with every year of age. This number was found by using the linear model found by using the lm() function, and extracting the age coefficient (independent variable).
+
+\begingroup
+\fontsize{10}{12}\selectfont
+**Part C**
+\endgroup
+
+```{r}
+Forty = 135 - (coef(ModelCreatinine)[1] + (coef(ModelCreatinine)[2]*40))
+
+Sixty = 112 - (coef(ModelCreatinine)[1] + (coef(ModelCreatinine)[2]*60))
+```
+
+Between a 40-year old with a creatinine clearance rate of 135 and a 60-year old with a rate of 112, the 40-year old is healthier. The 40-year old's residual clearance rate (residual = actual - predicted) is `r round(Forty, 3)` mL/minute, while the 60-year old only had a residual of `r round(Sixty, 3)` mL/minute. The higher residual represents a healthier cleatine clearance, therefore making the 40-year old healthier.  
+
+\
+
+\begingroup
+\fontsize{12}{14}\selectfont
+**Problem 2:**
+\endgroup
+
+Beta, in terms of stock, is a measurement of how systematically risky a stock is. A systematic risk means the risk that’s sourced from the entire market. A beta higher than 1 is considered more systematically risky than average, while anything below 1 has a below average systematic risk. The higher the beta, the more risky the stock as it's more likely to fall in value if the market was to fail. A beta of 0 means there is no systematic risk, and a negative beta is very good as it’s a sort of “insurance” if the market were to collapse. Calculating the beta can be done by finding the linear model using the lm() function between a stock's returns and S&P 500's returns. The slope if that model will be the beta.
+
+```{r}
+RegressTable <- tibble()
+
+StockVariables <- c("AAPL", "GOOG", "MRK", "JNJ", "WMT", "TGT")
+
+for(stock in StockVariables) {
+  ModelStock = lm(get(stock) ~ SPY, data = MarketModel)
+  
+  Results <- tibble(
+    Symbol = stock,
+    Intercept = round(coef(ModelStock)[1], 3),
+    Slope = round(coef(ModelStock)[2], 3),
+    RSquared = round(summary(ModelStock)$r.squared, 3),
+    )
+  
+  RegressTable <- rbind(RegressTable, Results)
+}
+
+kbl(RegressTable, booktabs = T) %>%
+  kable_styling(latex_options = c("striped", "hold_position"))
+```
+
+The table above presents regression results for individual stocks (Apple - AAPL, Google - GOOG, Merck - MRK, Johnson and Johnson - JNJ, Walmart - WMT, Target - TGT) regressed on the daily returns of the S&P 500 stock index (SPY). The table includes the ticker symbol, intercept, slope, and R-squared values for each regression. The intercept represents the expected return when the market return is zero, the slope indicates the sensitivity of the stock to market movements, and the R-squared quantifies the goodness of fit.
+
+The stock with the lowest systematic risk is WMT, also known as Walmart with a beta value of 0.519. The highest systematic risk stock is AAPL, otherwise known as Apple with a beta value of 1.066.
+
+\newpage
+
+\begingroup
+\fontsize{12}{14}\selectfont
+**Problem 3:**
+\endgroup
+
+```{r}
+ItalyOnly <- Covid %>%
+  filter(country == "Italy")
+
+SpainOnly <- Covid %>%
+  filter(country == "Spain")
+
+lmItaly = lm(log(deaths) ~ days_since_first_death, data = ItalyOnly)
+
+lmSpain = lm(log(deaths) ~ days_since_first_death, data = SpainOnly)
+
+GRItaly = round(coef(lmItaly)[2], 3)
+
+GRSpain = round(coef(lmSpain)[2], 3)
+
+ggplot(Covid) + geom_line(aes(x = days_since_first_death, y = deaths, color = country)) + labs(title = 'Average Boardings by Hour of the Day, Day of the Week, and Month', x = 'Hour of the Day', y = 'Average Boardings', color = 'Month') + scale_color_manual(values = c('skyblue', 'pink')) + theme(text=element_text(size = 13, family="serif")) + theme_minimal() + theme(text=element_text(size = 13, family="serif"))
+```
+
+The graph above shows the number of COVID-19 deaths in Italy and Spain since their first respective deaths from COVID-19. The estimated growth rate and doubling time for Italy is `r round(coef(lmItaly)[2], 3)` and `r round(70/(GRItaly * 100), )`, respectively. The estimated growth rate and doubling time for Spain is `r round(coef(lmSpain)[2], 3)` and `r round(70/(GRSpain * 100), )`, respectively.
+
+\
+
+\begingroup
+\fontsize{12}{14}\selectfont
+**Problem 4:**
+\endgroup
+
+```{r}
+lmMilk = lm(log(sales) ~ log(price), data=Milk)
+
+Beta <- coef(lmMilk)[2]
+```
+
+The estimated price elasticity of milk is `r round(coef(lmMilk)[2], 3)`. This number was found by finding the linear model using the lm() function of the log of price vs. the log of sales. The beta value, or slope, of the linear model is the price elasticity of milk.
